@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:tic_tac_toe_game/board_tile.dart';
 import 'package:tic_tac_toe_game/tile_state.dart';
 
-import 'board_tile.dart';
 
 void main() {
   runApp( MyApp());
@@ -13,34 +13,43 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp>{
-
+  
+  final navigatorKey = GlobalKey<NavigatorState>();
   var _boardState = List.filled(9, TileState.EMPTY);
-
   var _currentTurn = TileState.CROSS;
+
+    final ButtonStyle flatButtonStyle = TextButton.styleFrom(
+    primary: Colors.black87,
+    minimumSize: Size(88, 36),
+    padding: EdgeInsets.symmetric(horizontal: 16.0),
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.all(Radius.circular(2.0)),
+    ),
+  );
+
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       home: Scaffold(
         body: Center(
-            child: Stack(children: [Image.asset("images/board.png"), _borderTiles()]),
+            child: Stack(children: [Image.asset("images/board.png"), _boardTiles()]),
         ),
       )
     );
 
   }
   
-Widget _borderTiles(){
-  return Builder(builder: (context){
-    final boardDismension = MediaQuery.of(context).size.width;
-    final tileDimension = boardDismension / 3; 
+  Widget _boardTiles() {
+    return Builder(builder: (context) {
+      final boardDimension = MediaQuery.of(context).size.width;
+      final tileDimension = boardDimension / 3;
 
-    return Container(
-      width:  boardDismension,
-      height: boardDismension,
-     // color: Colors.redAccent,
-      child: Column(
-         children: chunk(_boardState, 3).asMap().entries.map((entry) {
+      return Container(
+          width: boardDimension,
+          height: boardDimension,
+          child: Column(
+              children: chunk(_boardState, 3).asMap().entries.map((entry) {
             final chunkIndex = entry.key;
             final tileStateChunk = entry.value;
 
@@ -52,8 +61,8 @@ Widget _borderTiles(){
 
                 return BoardTile(
                   tileState: tileState,
+                  // onPressed: () => print("Tapped index $tileIndex"),
                   dimension: tileDimension,
-                // onPressed: () => print("Tapped index $tileIndex"),
                   onPressed: () => _updateTileStateForIndex(tileIndex),
                 );
               }).toList(),
@@ -62,32 +71,37 @@ Widget _borderTiles(){
     });
   }
 
-  void _updateTileStateForIndex(int selectedIndex){
-    if(_boardState[selectedIndex] == TileState.EMPTY){
+              
+
+  void _updateTileStateForIndex(int selectedIndex) {
+    if (_boardState[selectedIndex] == TileState.EMPTY) {
       setState(() {
         _boardState[selectedIndex] = _currentTurn;
-        _currentTurn =_currentTurn == TileState.CROSS ? TileState.CIRCLE: TileState.CROSS;
+        _currentTurn = _currentTurn == TileState.CROSS
+            ? TileState.CIRCLE
+            : TileState.CROSS;
       });
 
       final winner = _findWinner();
-      if(winner != null)
-        print("Winner is $winner");
-
+      if (winner != null) {
+        print('Winner is: $winner');
+        _showWinnerDialog(winner);
+      }
     }
   }
 
-  TileState _findWinner(){
-        TileState Function(int, int, int) winnerForMatch = (a, b, c) {
-      if (_boardState[a] != TileState.EMPTY) {
-        if ((_boardState[a] == _boardState[b]) &&
-            (_boardState[b] == _boardState[c])) {
-          return _boardState[a];
+  TileState _findWinner() {
+      TileState Function(int, int, int) winnerForMatch = (a, b, c) {
+        if (_boardState[a] != TileState.EMPTY) {
+          if ((_boardState[a] == _boardState[b]) &&
+              (_boardState[b] == _boardState[c])) {
+            return _boardState[a];
+          }
         }
-      }
-      return null;
-  };
+        return null;
+      };
 
-    final checks = [
+      final checks = [
         winnerForMatch(0, 1, 2),
         winnerForMatch(3, 4, 5),
         winnerForMatch(6, 7, 8),
@@ -105,9 +119,38 @@ Widget _borderTiles(){
           break;
         }
       }
-    return winner;
+
+      return winner;
+    }
+
+  void _showWinnerDialog(TileState tileState) {
+    final context = navigatorKey.currentState.overlay.context;
+    showDialog(
+        context: context,
+        builder: (_) {
+          return AlertDialog(
+            title: Text('Winner'),
+            content: Image.asset(
+                tileState == TileState.CROSS ? 'images/x.png' : 'images/o.png'),
+            actions: [
+              TextButton(
+                  style: flatButtonStyle,
+                  onPressed: () {
+                    _resetGame();
+                    Navigator.of(context).pop();
+                  },
+                  child: Text('New Game'),                                
+
+              )
+            ],
+          );
+        });
   }
 
-
-
+  void _resetGame() {
+    setState(() {
+      _boardState = List.filled(9, TileState.EMPTY);
+      _currentTurn = TileState.CROSS;
+    });
+  }
 }
